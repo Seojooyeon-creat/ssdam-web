@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>몽실이 쓰담소</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<style>
+:root{
+  --ground:#F6ECF3; --panel:#FDF7FB; --ink:#2D2230; --muted:#7A6576; --line:#E6D1E0;
+  --stage:#FCF4F9; --stage2:#F1DDEB;
+  --pet:#E0679A; --whip:#A86A3A; --punch:#6A5BD9;
+  --good:#4FA66E; --bad:#D9534F;
+  --body:#FFF9F6; --outline:#3A2A3A; --blush:#FFA6C4;
+  --hair:#F7B6D2; --ribbon:#EE6FA5; --iris:#A78BFA; --irisDark:#4C2E8F; --mouth:#E86A8C;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#1B1520; --panel:#241C2A; --ink:#F4E9F1; --muted:#B9A5B6; --line:#3B2E40;
+    --stage:#211A27; --stage2:#2E2336;
+    --pet:#F58CB8; --whip:#D39A62; --punch:#9D90FF;
+    --good:#6CC585; --bad:#F07A72;
+    --body:#FFF6F2; --outline:#1A1219; --blush:#FF9CBE;
+    --hair:#F4A9CB; --ribbon:#FF7EB3; --iris:#B69CFF; --irisDark:#4C2E8F; --mouth:#E86A8C;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+    --ground:#1B1520; --panel:#241C2A; --ink:#F4E9F1; --muted:#B9A5B6; --line:#3B2E40;
+    --stage:#211A27; --stage2:#2E2336;
+    --pet:#F58CB8; --whip:#D39A62; --punch:#9D90FF;
+    --good:#6CC585; --bad:#F07A72;
+    --body:#FFF6F2; --outline:#1A1219; --blush:#FF9CBE;
+    --hair:#F4A9CB; --ribbon:#FF7EB3; --iris:#B69CFF; --irisDark:#4C2E8F; --mouth:#E86A8C;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  font-size:15px; padding-inline:16px; padding-block:20px 28px;
+}
+.wrap{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:14px}
+header{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap}
+h1{font-family:"Jua","Gowun Dodum",sans-serif; font-weight:400; font-size:34px; line-height:1; margin:0; letter-spacing:-.01em}
+.sub{color:var(--muted); margin:6px 0 0; font-size:14px}
+.stats{display:flex; gap:14px; font-variant-numeric:tabular-nums; color:var(--muted); font-size:13px}
+.stats b{font-family:"Jua",sans-serif; font-weight:400; color:var(--ink); font-size:18px; margin-left:4px}
+
+.mood{display:flex; align-items:center; gap:10px}
+.mood .lbl{font-family:"Jua",sans-serif; font-size:15px; min-width:44px}
+.bar{flex:1; height:12px; border-radius:99px; background:var(--stage2); overflow:hidden; border:1px solid var(--line)}
+.bar i{display:block; height:100%; width:70%; background:var(--good); border-radius:99px; transition:width .25s ease, background-color .25s}
+.mood .val{font-variant-numeric:tabular-nums; min-width:62px; text-align:right; font-size:13px; color:var(--muted)}
+
+.stage{
+  position:relative; border-radius:22px; overflow:hidden; border:1.5px solid var(--line);
+  background:radial-gradient(120% 90% at 50% 100%, var(--stage2), var(--stage) 60%);
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+canvas{display:block; width:100%; height:min(62vh,500px); min-height:320px; cursor:none}
+.hint{position:absolute; left:14px; bottom:12px; font-size:12.5px; color:var(--muted); pointer-events:none}
+
+.tools{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.tool{
+  font:inherit; color:var(--ink); background:var(--panel); border:1.5px solid var(--line);
+  border-radius:16px; padding:12px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition:transform .12s ease, border-color .15s, background-color .15s;
+}
+.tool:hover{transform:translateY(-2px)}
+.tool:focus-visible{outline:3px solid var(--punch); outline-offset:2px}
+.tool .name{font-family:"Jua",sans-serif; font-size:19px}
+.tool .desc{font-size:12px; color:var(--muted)}
+.tool svg{width:34px; height:34px}
+.tool[aria-pressed="true"][data-tool="pet"]{border-color:var(--pet); background:color-mix(in srgb,var(--pet) 12%,var(--panel))}
+.tool[aria-pressed="true"][data-tool="whip"]{border-color:var(--whip); background:color-mix(in srgb,var(--whip) 12%,var(--panel))}
+.tool[aria-pressed="true"][data-tool="punch"]{border-color:var(--punch); background:color-mix(in srgb,var(--punch) 12%,var(--panel))}
+
+.row{display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap}
+.btn{font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:99px; padding:7px 14px; cursor:pointer}
+.btn:hover{background:var(--panel)}
+.btn:focus-visible{outline:3px solid var(--punch); outline-offset:2px}
+@media (max-width:480px){
+  h1{font-size:28px}
+  .tool .desc{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>쓰담쓰담</h1>
+      <p class="sub">똘갱이</p>
+    </div>
+    <div class="stats" aria-live="polite">
+      <span>쓰담<b id="cPet">0</b></span>
+      <span>찰싹<b id="cWhip">0</b></span>
+      <span>퍽<b id="cPunch">0</b></span>
+    </div>
+  </header>
+
+  <div class="mood">
+    <span class="lbl" id="moodLbl">좋음</span>
+    <div class="bar" role="meter" aria-label="몽실이 기분" aria-valuemin="0" aria-valuemax="100" id="moodBar"><i id="moodFill"></i></div>
+    <span class="val" id="moodVal">70 / 100</span>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="몽실이 캐릭터. 선택한 도구로 클릭하거나 문지르세요."></canvas>
+    <div class="hint" id="hint">누른 채 문지르면… 싫어해요</div>
+  </div>
+
+  <div class="tools" role="group" aria-label="도구">
+    <button class="tool" id="tPet" data-tool="pet" aria-pressed="true">
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-9a2.5 2.5 0 015 0v7M17 20V9a2.5 2.5 0 015 0v11M22 20v-9a2.5 2.5 0 015 0v10M27 21v-5a2.5 2.5 0 015 0v8c0 7-5 12-11 12h-2c-4 0-6-2-8-5l-4-6a2.4 2.4 0 014-2.7L12 22"/></svg>
+      <span class="name">쓰담쓰담</span><span class="desc">문지르면 짜증 냄</span>
+    </button>
+    <button class="tool" id="tWhip" data-tool="whip" aria-pressed="false">
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 34l7-9"/><path d="M15 25c6-8 16-9 18-3s-8 9-14 5"/></svg>
+      <span class="name">채찍</span><span class="desc">찰싹 하면 좋아함</span>
+    </button>
+    <button class="tool" id="tPunch" data-tool="punch" aria-pressed="false">
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="9" y="12" width="22" height="16" rx="6"/><path d="M15 12v16M21 12v16M9 20h-1a3 3 0 000 6h3M17 28v5h10v-5"/></svg>
+      <span class="name">주먹</span><span class="desc">클릭해서 퍽</span>
+    </button>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="sound" aria-pressed="true">소리 켜짐</button>
+    <button class="btn" id="reset">처음부터</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0, DPR = 1;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let C = {};
+function readColors(){
+  C = {ink:css('--ink'), body:css('--body'), outline:css('--outline'), blush:css('--blush'),
+       pet:css('--pet'), whip:css('--whip'), punch:css('--punch'), muted:css('--muted'),
+       good:css('--good'), bad:css('--bad'), stage2:css('--stage2'),
+       hair:css('--hair'), ribbon:css('--ribbon'), iris:css('--iris'), irisDark:css('--irisDark'), mouth:css('--mouth')};
+}
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+new MutationObserver(readColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+new ResizeObserver(resize).observe(cv);
+resize();
+
+// ---------- state ----------
+const S = {
+  tool:'pet', mood:70, counts:{pet:0,whip:0,punch:0},
+  sx:1, sy:1, vsx:0, vsy:0, ox:0, oy:0, vox:0, voy:0, tilt:0, vtilt:0,
+  hurt:0, dizzy:0, happy:0, annoyed:0, wink:0, winkMode:'happy', blinkT:2, blink:0,
+  marks:[], parts:[], words:[],
+  swing:null, fist:null, bubble:{text:'안녕? 나는 몽실이야!', t:3},
+  ptr:{x:-999,y:-999,in:false,down:false,lx:0,ly:0,acc:0},
+  sound:true, t:0
+};
+const R = () => Math.min(W, H) * 0.27;
+const center = () => ({x: W/2 + S.ox, y: H*0.56 + S.oy});
+
+// ---------- audio ----------
+let AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
+function blip(f=660, d=.12, type='sine', vol=.12){
+  if(!S.sound) return; const a = ac(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.setValueAtTime(f,a.currentTime);
+  o.frequency.exponentialRampToValueAtTime(f*1.5,a.currentTime+d);
+  g.gain.setValueAtTime(vol,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+d);
+}
+function noise(d=.12, hp=2000, vol=.35){
+  if(!S.sound) return; const a = ac(); if(!a) return;
+  const b=a.createBuffer(1,a.sampleRate*d,a.sampleRate), ch=b.getChannelData(0);
+  for(let i=0;i<ch.length;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/ch.length,3);
+  const s=a.createBufferSource(), f=a.createBiquadFilter(), g=a.createGain();
+  s.buffer=b; f.type='highpass'; f.frequency.value=hp; g.gain.value=vol;
+  s.connect(f).connect(g).connect(a.destination); s.start();
+}
+function thump(){
+  if(!S.sound) return; const a=ac(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(180,a.currentTime); o.frequency.exponentialRampToValueAtTime(45,a.currentTime+.25);
+  g.gain.setValueAtTime(.5,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.3);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+.3);
+  noise(.08,400,.25);
+}
+
+// ---------- UI ----------
+const lines = {
+  pet:['흥! 만지지 마!','머리 망가지잖아!','손 치워 줄래?','으으… 싫다구','바, 바보!'],
+  whip:['헤헤, 시원해~','한 번 더!','에헤헤','개운해졌어!','좋아좋아~'],
+  punch:['퍽?!','으억','별이 보여…','아프잖아!','흐엉'],
+  low:['흥, 삐졌어','…','말 안 할 거야'],
+};
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function say(t, dur=1.6){ S.bubble = {text:t, t:dur}; }
+
+function setMood(d){
+  S.mood = Math.max(0, Math.min(100, S.mood + d));
+  const m = Math.round(S.mood);
+  document.getElementById('moodFill').style.width = m + '%';
+  document.getElementById('moodFill').style.backgroundColor = m>=60?C.good : m>=30?C.whip : C.bad;
+  document.getElementById('moodVal').textContent = m + ' / 100';
+  document.getElementById('moodBar').setAttribute('aria-valuenow', m);
+  document.getElementById('moodLbl').textContent = m>=85?'최고':m>=60?'좋음':m>=30?'시무룩':'삐짐';
+}
+function bump(k){ S.counts[k]++; document.getElementById('c'+k[0].toUpperCase()+k.slice(1)).textContent = S.counts[k]; }
+
+const hints = {pet:'누른 채 문지르면… 싫어해요', whip:'클릭해서 찰싹! 몽실이가 좋아해요', punch:'몽실이를 클릭하면 퍽'};
+document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => {
+  S.tool = b.dataset.tool;
+  document.querySelectorAll('.tool').forEach(x => x.setAttribute('aria-pressed', x===b));
+  document.getElementById('hint').textContent = hints[S.tool];
+}));
+addEventListener('keydown', e => {
+  if(e.target.closest && e.target.closest('input,textarea')) return;
+  const m = {'1':'tPet','2':'tWhip','3':'tPunch'}[e.key]; if(m) document.getElementById(m).click();
+});
+const sb = document.getElementById('sound');
+sb.addEventListener('click', () => { S.sound=!S.sound; sb.setAttribute('aria-pressed',S.sound); sb.textContent = S.sound?'소리 켜짐':'소리 꺼짐'; });
+document.getElementById('reset').addEventListener('click', () => {
+  S.mood=70; setMood(0); S.marks=[]; S.hurt=S.dizzy=0; S.counts={pet:0,whip:0,punch:0};
+  ['cPet','cWhip','cPunch'].forEach(id=>document.getElementById(id).textContent='0');
+  say('…다시 친하게 지내 줄게!', 2);
+});
+
+// ---------- hit test ----------
+function onBody(x,y){
+  const c=center(), r=R();
+  const dx=(x-c.x)/(r*S.sx*1.05), dy=(y-c.y)/(r*0.9*S.sy*1.05);
+  return dx*dx+dy*dy <= 1;
+}
+
+// ---------- actions ----------
+function spawn(type,x,y,n){
+  for(let i=0;i<n;i++){
+    const soft=type==='heart'||type==='anger'; const a=Math.random()*Math.PI*2, sp= soft? 40+Math.random()*50 : 120+Math.random()*160;
+    S.parts.push({type,x,y,vx:Math.cos(a)*sp*(soft?.5:1),vy:(soft?-60-Math.random()*60:Math.sin(a)*sp),
+      life:0, max: soft?1.2:.7, s:.6+Math.random()*.6, rot:Math.random()*6});
+  }
+}
+function word(t,x,y,col){ S.words.push({t,x,y,col,life:0}); }
+
+function doWhip(x,y){
+  S.swing = {x, y, t:0, hit:false};
+}
+function whipImpact(x,y){
+  const c=center();
+  if(onBody(x,y)){
+    S.vox += (x<c.x?1:-1)*-120; S.vtilt += (x<c.x?1:-1)*2.6;
+    S.vsy -= 4; S.happy = 1.4; S.annoyed = 0; S.hurt = 0; S.wink = 1.2; S.winkMode='happy';
+    setMood(+7); bump('whip'); say(pick(lines.whip));
+    spawn('spark',x,y,5); spawn('heart',c.x,c.y-R()*.6,4); word('찰싹!',x,y-20,C.whip);
+    noise(.13,2500,.35); setTimeout(()=>blip(880,.14,'sine',.07),90);
+    shake(4);
+  } else { noise(.08,3500,.18); word('휙',x,y,C.muted); }
+}
+function doPunch(x,y){ S.fist = {x,y,t:0,hit:false}; }
+function punchImpact(x,y){
+  const c=center();
+  if(onBody(x,y)){
+    S.vsy -= 9; S.vsx += 9; S.voy += 200; S.vox += (c.x-x)*3;
+    S.hurt = 1.1; S.dizzy = 0; S.wink = 1.1; S.winkMode='hurt'; setTimeout(()=>{ if(S.wink<=0) S.dizzy = 1.2; },1150);
+    setMood(-10); bump('punch'); say(S.mood<25?pick(lines.low):pick(lines.punch));
+    spawn('star',x,y,10); word('퍽!',x,y-24,C.punch); thump(); shake(14);
+  } else { blip(120,.1,'triangle',.08); word('헛방',x,y,C.muted); }
+}
+let shakeAmt = 0;
+function shake(n){ if(!reduce) shakeAmt = Math.max(shakeAmt, n); }
+
+// ---------- pointer ----------
+function pos(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+cv.addEventListener('pointerdown', e => {
+  ac(); if(AC && AC.state==='suspended') AC.resume();
+  cv.setPointerCapture(e.pointerId);
+  const p=pos(e); Object.assign(S.ptr,{x:p.x,y:p.y,in:true,down:true,lx:p.x,ly:p.y});
+  if(S.tool==='whip' && !S.swing) doWhip(p.x,p.y);
+  if(S.tool==='punch' && !S.fist) doPunch(p.x,p.y);
+});
+cv.addEventListener('pointermove', e => {
+  const p=pos(e); const P=S.ptr; P.x=p.x; P.y=p.y; P.in=true;
+  if(S.tool==='pet' && P.down && onBody(p.x,p.y)){
+    const d=Math.hypot(p.x-P.lx,p.y-P.ly); P.acc+=d;
+    S.vtilt -= (p.x-P.lx)*0.03; S.vsx += d*0.012; S.annoyed = Math.min(1.2, S.annoyed+.06); S.happy=0;
+    if(P.acc>55){
+      P.acc=0; spawn('anger',p.x+(Math.random()-.5)*30,p.y-20,1); setMood(-2);
+      bump('pet'); blip(160+Math.random()*60,.12,'square',.05);
+      if(Math.random()<.25) say(S.mood<25?pick(lines.low):pick(lines.pet),1.2);
+    }
+  }
+  P.lx=p.x; P.ly=p.y;
+});
+const up = () => { S.ptr.down=false; };
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('pointerleave', () => { S.ptr.in=false; S.ptr.down=false; });
+
+// ---------- physics ----------
+function spring(v, x, target, k, d, dt){ const a = -k*(x-target) - d*v; v += a*dt; x += v*dt; return [v,x]; }
+function update(dt){
+  S.t += dt;
+  [S.vsx,S.sx] = spring(S.vsx,S.sx,1,180,9,dt);
+  [S.vsy,S.sy] = spring(S.vsy,S.sy,1,180,9,dt);
+  [S.vox,S.ox] = spring(S.vox,S.ox,0,90,10,dt);
+  [S.voy,S.oy] = spring(S.voy,S.oy,0,90,10,dt);
+  [S.vtilt,S.tilt] = spring(S.vtilt,S.tilt,0,70,7,dt);
+  S.hurt=Math.max(0,S.hurt-dt); S.dizzy=Math.max(0,S.dizzy-dt); S.happy=Math.max(0,S.happy-dt*.8); S.annoyed=Math.max(0,S.annoyed-dt*.7); S.wink=Math.max(0,S.wink-dt);
+  S.blinkT-=dt; if(S.blinkT<0){ S.blink=.14; S.blinkT=2+Math.random()*3; } S.blink=Math.max(0,S.blink-dt);
+  S.marks.forEach(m=>m.life-=dt*.12); S.marks=S.marks.filter(m=>m.life>0);
+  S.parts.forEach(p=>{ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.type!=='heart'&&p.type!=='anger') p.vy+=400*dt; p.rot+=dt*4; });
+  S.parts=S.parts.filter(p=>p.life<p.max);
+  S.words.forEach(w=>{w.life+=dt; w.y-=30*dt;}); S.words=S.words.filter(w=>w.life<.8);
+  if(S.bubble) { S.bubble.t-=dt; if(S.bubble.t<0) S.bubble=null; }
+  shakeAmt*=Math.pow(.02,dt);
+  if(S.swing){ S.swing.t+=dt; if(!S.swing.hit && S.swing.t>.14){ S.swing.hit=true; whipImpact(S.swing.x,S.swing.y);} if(S.swing.t>.42) S.swing=null; }
+  if(S.fist){ S.fist.t+=dt; if(!S.fist.hit && S.fist.t>.11){ S.fist.hit=true; punchImpact(S.fist.x,S.fist.y);} if(S.fist.t>.38) S.fist=null; }
+  // slow mood recovery toward 50 when left alone
+  if(S.mood<50 && S.hurt===0) setMood(dt*.6);
+}
+
+// ---------- drawing ----------
+function drawCharacter(){
+  const c=center(), r=R();
+  const breathe = reduce?0:Math.sin(S.t*2.2)*0.02;
+  ctx.save();
+  ctx.translate(c.x, c.y + r*0.9);
+  ctx.rotate(S.tilt*0.08);
+  ctx.scale(S.sx*(1-breathe), S.sy*(1+breathe));
+  ctx.translate(0, -r*0.9);
+
+  // shadow
+  ctx.save(); ctx.globalAlpha=.18; ctx.fillStyle=C.outline;
+  ctx.beginPath(); ctx.ellipse(0, r*0.93, r*0.85, r*0.12, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+
+  const sw = Math.sin(S.t*3)*0.08 + S.tilt*0.15;
+
+  // long hair (behind body)
+  ctx.fillStyle=C.hair; ctx.strokeStyle=C.outline; ctx.lineWidth=3; ctx.lineJoin='round';
+  [-1,1].forEach(s=>{
+    const swing = Math.sin(S.t*2.4+s)*r*.03 + S.tilt*r*.05;
+    ctx.beginPath();
+    ctx.moveTo(s*r*.55,-r*.7);
+    ctx.bezierCurveTo(s*r*1.25,-r*.55, s*(r*1.2)+swing,r*.35, s*r*1.02+swing,r*.78);
+    ctx.quadraticCurveTo(s*r*.95+swing,r*.9, s*r*.86+swing,r*.72);
+    ctx.quadraticCurveTo(s*r*.9,r*.2, s*r*.7,-r*.2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  });
+
+  // arms (nubs)
+  ctx.fillStyle=C.body; ctx.strokeStyle=C.outline; ctx.lineWidth=3;
+  const wave = S.happy>0 ? Math.sin(S.t*14)*.3 : 0;
+  [-1,1].forEach(s=>{
+    ctx.save(); ctx.translate(s*r*.95, r*.2); ctx.rotate(s*(.5+wave) + (S.hurt>0?s*-.9:0));
+    ctx.beginPath(); ctx.ellipse(0,0,r*.18,r*.12,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+  });
+  // feet (little shoes)
+  [-1,1].forEach(s=>{ ctx.fillStyle=C.ribbon; ctx.beginPath(); ctx.ellipse(s*r*.4, r*.86, r*.19, r*.1, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke(); });
+
+  // body blob (wobbly)
+  const blob = () => {
+    ctx.beginPath();
+    const N=48;
+    for(let i=0;i<=N;i++){
+      const a=i/N*Math.PI*2;
+      const wob = 1 + (reduce?0:Math.sin(a*3+S.t*2)*0.012) + Math.sin(a*2+S.t*1.3)*0.008;
+      const flat = Math.sin(a)>0 ? 0.92 : 1;
+      const x=Math.cos(a)*r*wob, y=Math.sin(a)*r*0.9*wob*flat;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.closePath();
+  };
+  blob(); ctx.fillStyle=C.body; ctx.fill();
+
+  // bangs (clipped to body)
+  ctx.save(); blob(); ctx.clip();
+  ctx.fillStyle=C.hair; ctx.beginPath();
+  ctx.moveTo(-r*1.1,-r*1);
+  ctx.lineTo(-r*1.1,-r*.05);
+  const tips=[[-.92,-.05],[-.7,-.42],[-.5,-.2],[-.28,-.5],[-.06,-.3],[.14,-.52],[.36,-.26],[.56,-.46],[.78,-.12],[.95,-.3],[1.1,-.05]];
+  let px=-1.1, py=-.05;
+  tips.forEach(([tx,ty],i)=>{
+    const mx=(px+tx)/2, my=Math.min(py,ty)-.12;
+    ctx.quadraticCurveTo(mx*r, (i%2? my : Math.max(py,ty))*r, tx*r, ty*r); px=tx; py=ty;
+  });
+  ctx.lineTo(r*1.1,-r*1); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=C.outline; ctx.lineWidth=3; ctx.stroke();
+  // hair shine
+  ctx.strokeStyle=C.body; ctx.globalAlpha=.7; ctx.lineWidth=r*.035;
+  ctx.beginPath(); ctx.arc(-r*.1,-r*.25,r*.55,Math.PI*1.2,Math.PI*1.4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(-r*.1,-r*.25,r*.55,Math.PI*1.47,Math.PI*1.55); ctx.stroke();
+  ctx.globalAlpha=1;
+  ctx.restore();
+  blob(); ctx.lineWidth=3.5; ctx.strokeStyle=C.outline; ctx.stroke();
+
+  // ribbon on top
+  ctx.save(); ctx.translate(r*.42,-r*.78); ctx.rotate(.35+sw);
+  ctx.fillStyle=C.ribbon; ctx.strokeStyle=C.outline; ctx.lineWidth=3;
+  [-1,1].forEach(s=>{
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.bezierCurveTo(s*r*.12,-r*.22, s*r*.36,-r*.14, s*r*.3,r*.02);
+    ctx.bezierCurveTo(s*r*.26,r*.1, s*r*.1,r*.08, 0,0);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(s*r*.03,r*.03); ctx.lineTo(s*r*.12,r*.24); ctx.lineTo(s*r*.2,r*.18); ctx.closePath(); ctx.fill(); ctx.stroke();
+  });
+  ctx.beginPath(); ctx.ellipse(0,0,r*.065,r*.06,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // face
+  const ey=r*.02, ex=r*.34;
+  const hurt = S.hurt>0, dizzy=S.dizzy>0, happy=S.happy>.15 && !hurt;
+  const annoyed = S.annoyed>.15 && !hurt && !happy;
+  const sad = S.mood<30 && !hurt && !happy && !annoyed;
+  // blush with anime hatch
+  ctx.fillStyle=C.blush; ctx.globalAlpha = happy? .9 : .55;
+  [-1,1].forEach(s=>{ ctx.beginPath(); ctx.ellipse(s*r*.56, r*.22, r*.13, r*.07, 0, 0, Math.PI*2); ctx.fill(); });
+  ctx.globalAlpha = happy? .8 : .45; ctx.strokeStyle=C.ribbon; ctx.lineWidth=2;
+  [-1,1].forEach(s=>{ for(let k=-1;k<=1;k++){ const bx=s*r*.56+k*r*.06; ctx.beginPath(); ctx.moveTo(bx+r*.02,r*.18); ctx.lineTo(bx-r*.02,r*.26); ctx.stroke(); } });
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=C.outline; ctx.fillStyle=C.outline; ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  const lash = (x,s,y0) => { // upper lash line with outer flick
+    ctx.lineWidth=4.5; ctx.beginPath();
+    ctx.moveTo(x-s*r*.12, y0+r*.03); ctx.quadraticCurveTo(x, y0-r*.05, x+s*r*.13, y0+r*.01);
+    ctx.lineTo(x+s*r*.18, y0-r*.04); ctx.stroke(); ctx.lineWidth=3.5;
+  };
+  [-1,1].forEach(s=>{
+    const x=s*ex;
+    ctx.beginPath();
+    if(S.wink>0 && s===1){ // closed eye of the wink
+      ctx.lineWidth=4.5;
+      if(S.winkMode==='hurt'){ const k=r*.09; ctx.moveTo(x-s*k,ey-k); ctx.lineTo(x+s*k,ey); ctx.lineTo(x-s*k,ey+k); }
+      else { ctx.arc(x,ey+r*.05,r*.1,Math.PI*1.1,Math.PI*1.9); ctx.moveTo(x+s*r*.09,ey); ctx.lineTo(x+s*r*.15,ey-r*.04); }
+      ctx.stroke(); ctx.lineWidth=3.5;
+    } else if(S.wink>0 && s===-1){ // open eye of the wink
+      const ew=r*.105, eh=r*.15;
+      ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.ellipse(x,ey,ew,eh,0,0,Math.PI*2); ctx.fill();
+      const g=ctx.createLinearGradient(0,ey-eh,0,ey+eh); g.addColorStop(0,C.irisDark); g.addColorStop(1,C.iris);
+      ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,ey+r*.01,ew*.85,eh*.9,0,0,Math.PI*2); ctx.fill();
+      const pr = S.winkMode==='hurt' ? .28 : .4;
+      ctx.fillStyle=C.outline; ctx.beginPath(); ctx.ellipse(x,ey+r*.02,ew*pr,eh*pr*1.1,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#FFFFFF';
+      ctx.beginPath(); ctx.ellipse(x+r*.035,ey-r*.06,r*.04,r*.05,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x-r*.04,ey+r*.07,r*.018,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=C.outline; lash(x,s,ey-eh+r*.02);
+      if(S.winkMode==='hurt'){ ctx.beginPath(); ctx.moveTo(x-s*r*.13,ey-r*.26); ctx.lineTo(x+s*r*.05,ey-r*.2); ctx.stroke(); }
+    } else if(dizzy){
+      ctx.lineWidth=3; for(let k=0;k<2.6;k+=.1){ const rr=r*.02+k*r*.035; const a=k*5*s; const X=x+Math.cos(a)*rr, Y=ey+Math.sin(a)*rr; k?ctx.lineTo(X,Y):ctx.moveTo(X,Y); } ctx.stroke(); ctx.lineWidth=3.5;
+    } else if(hurt){ // > <
+      const k=r*.09; ctx.lineWidth=4.5; ctx.moveTo(x-s*k,ey-k); ctx.lineTo(x+s*k,ey); ctx.lineTo(x-s*k,ey+k); ctx.stroke(); ctx.lineWidth=3.5;
+    } else if(happy){ // ^ ^ with lash
+      ctx.lineWidth=4.5; ctx.arc(x,ey+r*.05,r*.1,Math.PI*1.1,Math.PI*1.9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+s*r*.09,ey+r*.0); ctx.lineTo(x+s*r*.15,ey-r*.04); ctx.stroke(); ctx.lineWidth=3.5;
+    } else if(annoyed){ // half-lid jito-me
+      ctx.fillStyle=C.iris; ctx.beginPath(); ctx.ellipse(x,ey+r*.04,r*.08,r*.06,0,0,Math.PI); ctx.fill();
+      ctx.fillStyle=C.outline; ctx.beginPath(); ctx.arc(x,ey+r*.05,r*.03,0,Math.PI*2); ctx.fill();
+      ctx.lineWidth=4.5; ctx.beginPath(); ctx.moveTo(x-r*.11,ey+r*.03); ctx.lineTo(x+r*.11,ey+r*.03); ctx.stroke();
+      ctx.lineWidth=3.5; ctx.beginPath(); ctx.moveTo(x+s*r*.13,ey-r*.13); ctx.lineTo(x-s*r*.06,ey-r*.07); ctx.stroke();
+    } else if(S.blink>0){
+      ctx.lineWidth=4.5; ctx.arc(x,ey-r*.02,r*.1,Math.PI*.15,Math.PI*.85); ctx.stroke(); ctx.lineWidth=3.5;
+    } else {
+      const ew=r*.105, eh=r*.15;
+      ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.ellipse(x,ey,ew,eh,0,0,Math.PI*2); ctx.fill();
+      const g=ctx.createLinearGradient(0,ey-eh,0,ey+eh); g.addColorStop(0,C.irisDark); g.addColorStop(1,C.iris);
+      ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,ey+r*.01,ew*.85,eh*.9,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=C.outline; ctx.beginPath(); ctx.ellipse(x,ey+r*.02,ew*.4,eh*.45,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#FFFFFF';
+      ctx.beginPath(); ctx.ellipse(x-s*r*.0+r*.035,ey-r*.06,r*.04,r*.05,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x-r*.04,ey+r*.07,r*.018,0,Math.PI*2); ctx.fill();
+      if(sad){ ctx.globalAlpha=.6; ctx.fillStyle='#CFE3FF'; ctx.beginPath(); ctx.ellipse(x,ey+eh*.75,ew*.8,r*.03,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+      ctx.fillStyle=C.outline;
+      lash(x,s,ey-eh+r*.02);
+      if(sad){ ctx.beginPath(); ctx.moveTo(x-s*r*.12,ey-r*.25); ctx.lineTo(x+s*r*.06,ey-r*.21); ctx.stroke(); }
+    }
+  });
+  // mouth
+  ctx.beginPath(); ctx.fillStyle=C.outline; ctx.strokeStyle=C.outline; ctx.lineWidth=3;
+  const my=r*.25;
+  if(hurt){ ctx.ellipse(0,my+r*.02,r*.05,r*.065,0,0,Math.PI*2); ctx.fill(); }
+  else if(happy){ ctx.moveTo(-r*.07,my-r*.01); ctx.quadraticCurveTo(0,my+r*.13,r*.07,my-r*.01); ctx.closePath(); ctx.fillStyle=C.mouth; ctx.fill(); ctx.stroke(); }
+  else if(annoyed){ ctx.moveTo(-r*.06,my+r*.03); ctx.quadraticCurveTo(0,my-r*.02,r*.06,my+r*.03); ctx.stroke(); ctx.fillStyle=C.body; ctx.beginPath(); ctx.moveTo(r*.02,my+r*.005); ctx.lineTo(r*.035,my+r*.04); ctx.lineTo(r*.05,my+r*.015); ctx.fill(); }
+  else if(sad){ ctx.moveTo(-r*.05,my+r*.04); ctx.quadraticCurveTo(0,my-r*.01,r*.05,my+r*.04); ctx.stroke(); }
+  else { ctx.moveTo(-r*.06,my); ctx.quadraticCurveTo(-r*.03,my+r*.045,0,my); ctx.quadraticCurveTo(r*.03,my+r*.045,r*.06,my); ctx.stroke(); }
+  // tear
+  if(sad || (hurt && S.mood<40)){
+    ctx.fillStyle='#8EC5FF'; ctx.globalAlpha=.85;
+    const ty = ey + r*.16 + ((S.t*40)%(r*.25));
+    ctx.beginPath(); ctx.ellipse(ex+r*.06, ty, r*.03, r*.045,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+  }
+  ctx.restore();
+
+  // ambient sparkles
+  if(!reduce){
+    [[-1.15,-.7,0],[1.2,-.35,1.7],[-.95,.45,3.1]].forEach(([sx,sy,ph])=>{
+      const k=(Math.sin(S.t*2.2+ph)+1)/2; if(k<.15) return;
+      twinkle(c.x+sx*r, c.y+sy*r, r*.07*k, C.ribbon, k);
+    });
+  }
+
+  // dizzy stars orbiting
+  if(dizzy){
+    for(let i=0;i<3;i++){
+      const a=S.t*5+i*2.1; star(c.x+Math.cos(a)*r*.6, c.y-r*.95+Math.sin(a)*r*.12, r*.07, C.whip, a);
+    }
+  }
+}
+
+function twinkle(x,y,s,col,a){
+  ctx.save(); ctx.globalAlpha=a; ctx.translate(x,y); ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(0,-s*1.6); ctx.quadraticCurveTo(0,0,s*1.6,0); ctx.quadraticCurveTo(0,0,0,s*1.6); ctx.quadraticCurveTo(0,0,-s*1.6,0); ctx.quadraticCurveTo(0,0,0,-s*1.6);
+  ctx.fill(); ctx.restore();
+}
+function star(x,y,s,col,rot=0){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.fillStyle=col; ctx.beginPath();
+  for(let i=0;i<10;i++){ const rr=i%2?s*.45:s; const a=i*Math.PI/5-Math.PI/2; ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function anger(x,y,s,col){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.strokeStyle=col; ctx.lineWidth=3.2; ctx.lineCap='round';
+  for(let i=0;i<4;i++){ ctx.save(); ctx.rotate(i*Math.PI/2); ctx.beginPath(); ctx.moveTo(3,-11); ctx.quadraticCurveTo(3,-3,11,-3); ctx.stroke(); ctx.restore(); }
+  ctx.restore();
+}
+function heart(x,y,s,col){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(0,6); ctx.bezierCurveTo(-14,-4,-6,-14,0,-6); ctx.bezierCurveTo(6,-14,14,-4,0,6); ctx.fill(); ctx.restore();
+}
+
+function drawBubble(){
+  if(!S.bubble) return;
+  const c=center(), r=R();
+  ctx.save();
+  ctx.font = `${Math.max(15, r*.16)}px Jua, "Gowun Dodum", sans-serif`;
+  const tw = ctx.measureText(S.bubble.text).width, pad=12, h=Math.max(15,r*.16)+pad*1.4;
+  let bx = c.x + r*.55, by = c.y - r*1.45;
+  if(bx + tw + pad*2 > W-10) bx = Math.max(10, c.x - r*.55 - tw - pad*2);
+  by = Math.max(10, by);
+  ctx.globalAlpha = Math.min(1, S.bubble.t*4);
+  ctx.fillStyle = C.body; ctx.strokeStyle=C.outline; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.roundRect(bx,by,tw+pad*2,h,14); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.outline; ctx.textBaseline='middle'; ctx.fillText(S.bubble.text, bx+pad, by+h/2+1);
+  ctx.restore();
+}
+
+function drawWhip(){
+  const P=S.ptr;
+  let hx, hy, tx, ty, prog=1;
+  if(S.swing){
+    const t=S.swing.t; prog = Math.min(1,t/.14);
+    hx = S.swing.x + 150 - prog*40; hy = S.swing.y - 150 + prog*60;
+    tx = S.swing.x; ty = S.swing.y;
+    const ease = 1-Math.pow(1-prog,3);
+    const cx1 = hx + (tx-hx)*.5 + (1-ease)*160, cy1 = hy - 120*(1-ease) + 40;
+    ctx.save(); ctx.strokeStyle=C.whip; ctx.lineCap='round';
+    ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(hx,hy);
+    const ex=hx+(tx-hx)*ease, ey=hy+(ty-hy)*ease;
+    ctx.quadraticCurveTo(cx1,cy1,ex,ey); ctx.stroke();
+    ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-8,ey+6); ctx.stroke();
+    ctx.restore();
+  } else if(P.in){
+    hx=P.x+18; hy=P.y-10;
+    ctx.save(); ctx.strokeStyle=C.whip; ctx.lineCap='round'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(hx,hy);
+    ctx.bezierCurveTo(hx+30,hy-30+Math.sin(S.t*4)*6, hx-20,hy-50, P.x, P.y);
+    ctx.stroke(); ctx.restore();
+  } else return;
+  // handle
+  ctx.save(); ctx.translate(hx,hy); ctx.rotate(-.8);
+  ctx.fillStyle=C.outline; ctx.beginPath(); ctx.roundRect(-4,0,8,34,4); ctx.fill();
+  ctx.fillStyle=C.whip; ctx.fillRect(-5,0,10,5); ctx.restore();
+}
+
+function drawFist(){
+  const P=S.ptr; let x,y,sc=1;
+  if(S.fist){
+    const t=S.fist.t; x=S.fist.x; y=S.fist.y;
+    sc = t<.11 ? 1.8 - (t/.11)*.9 : .9 + Math.min(1,(t-.11)/.2)*.1;
+  } else if(P.in){ x=P.x; y=P.y; } else return;
+  const s = 22*sc;
+  ctx.save(); ctx.translate(x,y); ctx.fillStyle='#F6D2B3'; ctx.strokeStyle=C.outline; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.roundRect(-s,-s*.8,s*2,s*1.6,s*.5); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); for(let i=-1;i<=1;i++){ ctx.moveTo(i*s*.5+ (i>0?0:0), -s*.8); ctx.lineTo(i*s*.5, -s*.1); } ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(-s*1.15,-s*.1,s*.7,s*.55,s*.25); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=C.punch; ctx.beginPath(); ctx.roundRect(-s*.9,s*.8,s*1.8,s*.9,s*.2); ctx.fill();
+  ctx.restore();
+}
+
+function drawHand(){
+  const P=S.ptr; if(!P.in) return;
+  const x=P.x, y=P.y, s=1 + (P.down?-.08:0), wig = P.down? Math.sin(S.t*18)*.12 : 0;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(wig); ctx.scale(s,s);
+  ctx.fillStyle='#F6D2B3'; ctx.strokeStyle=C.outline; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.roundRect(-16,-6,32,28,12); ctx.fill(); ctx.stroke();
+  for(let i=0;i<4;i++){ ctx.beginPath(); ctx.roundRect(-15+i*8,-22+(i===0||i===3?6:0),7,22,4); ctx.fill(); ctx.stroke(); }
+  ctx.beginPath(); ctx.roundRect(-26,4,14,9,4); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function frame(ts){
+  const now = ts/1000; const dt = Math.min(.033, now - (frame.last||now)); frame.last=now;
+  update(dt);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(shakeAmt>.3) ctx.translate((Math.random()-.5)*shakeAmt,(Math.random()-.5)*shakeAmt);
+  drawCharacter();
+  S.parts.forEach(p=>{
+    const a=1-p.life/p.max; ctx.globalAlpha=a;
+    if(p.type==='heart') heart(p.x,p.y,p.s*1.2,C.pet);
+    else if(p.type==='anger') anger(p.x,p.y,p.s*1.1,C.bad);
+    else if(p.type==='star') star(p.x,p.y,10*p.s,C.whip,p.rot);
+    else { ctx.strokeStyle=C.whip; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-p.vx*.04,p.y-p.vy*.04); ctx.stroke(); }
+  });
+  ctx.globalAlpha=1;
+  S.words.forEach(w=>{
+    ctx.save(); ctx.globalAlpha=1-w.life/.8; ctx.translate(w.x,w.y);
+    const sc = 1 + (w.life<.1? (1-w.life/.1)*.5 : 0); ctx.scale(sc,sc); ctx.rotate(-.1);
+    ctx.font='32px Jua, "Gowun Dodum", sans-serif'; ctx.textAlign='center';
+    ctx.lineWidth=5; ctx.strokeStyle=C.body; ctx.strokeText(w.t,0,0); ctx.fillStyle=w.col; ctx.fillText(w.t,0,0); ctx.restore();
+  });
+  drawBubble();
+  ctx.restore();
+  if(S.tool==='pet') drawHand(); else if(S.tool==='whip') drawWhip(); else drawFist();
+  requestAnimationFrame(frame);
+}
+setMood(0);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
